@@ -1,0 +1,25 @@
+{
+  "development": {
+    "username": "avnadmin",
+    "password": "AVNS_E5JzZMhh5Vv17xODtpR",
+    "database": "defaultdb",
+    "host": "sweet-maia.h.aivencloud.com",
+    "dialect": "mysql",
+    "port": "18347"
+  },
+  "test": {
+    "username": "root",
+    "password": null,
+    "database": "database_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "avnadmin",
+    "password": "AVNS_E5JzZMhh5Vv17xODtpR",
+    "database": "defaultdb",
+    "host": "sweet-maia.h.aivencloud.com",
+    "dialect": "mysql",
+    "port": "18347"
+  }
+}
