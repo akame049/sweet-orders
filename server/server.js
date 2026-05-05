@@ -6,12 +6,16 @@ const { faker } = require('@faker-js/faker');
 const { Product, Category, sequelize } = require('../models');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:5173", "https://sweet-orders-jade.vercel.app"]
+}));
 app.use(express.json());
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "http://localhost:5173" } 
+    cors: {
+        origin: ["http://localhost:5173", "https://sweet-orders-jade.vercel.app""],
+        methods: ["GET", "POST"] } 
 });
 
 let fakerLoopActive = false;
