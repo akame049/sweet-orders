@@ -1,8 +1,8 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client'; 
 
-const API_URL = 'http://localhost:5000/api';
-const SOCKET_URL = 'http://localhost:5000';
+const API_URL = 'https://sweet-orders-u2ai.onrender.com/api';
+const SOCKET_URL = 'https://sweet-orders-u2ai.onrender.com';
 
 let offlineQueue = [];
 
