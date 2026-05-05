@@ -1,5 +1,4 @@
 node_modules/
 .vs/
-config/config.json
 .env
 coverage/
