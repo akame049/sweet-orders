@@ -15,11 +15,6 @@
     "dialect": "mysql"
   },
   "production": {
-    "username": "avnadmin",
-    "password": "AVNS_E5JzZMhh5Vv17xODtpR",
-    "database": "defaultdb",
-    "host": "sweet-maia.h.aivencloud.com",
-    "dialect": "mysql",
-    "port": "18347"
+    "use_env_variable": "DATABASE_URL",
+    "dialect": "mysql"
   }
-}
