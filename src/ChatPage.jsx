@@ -92,23 +92,16 @@ const ChatPage = () => {
             </div>
 
             <div className="chat-messages">
-                {messages.map((msg, i) => (
-                    msg.system ? (
-                        <div key={i} className="chat-system">{msg.text}</div>
-                    ) : (
-                        <div key={i} className={`chat-message ${msg.username === user.username ? 'own' : 'other'}`}>
-                            <div className="chat-bubble">
-                                <div className="chat-meta">
-                                    <span className="chat-username">
-                                        {msg.username}
-                                        {msg.roles?.includes('admin') && <span className="admin-badge"> 👑</span>}
-                                    </span>
-                                    <span className="chat-time">{formatTime(msg.timestamp)}</span>
-                                </div>
-                                <p>{msg.text}</p>
+                {messages.map((msg, index) => (
+                    <div key={msg._id || msg.timestamp || index} className={`chat-message ${msg.username === user.username ? 'own' : 'other'}`}>
+                        <div className="chat-bubble">
+                            <div className="chat-meta">
+                                <span className="chat-username">{msg.username}</span>
+                                <span className="chat-time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
                             </div>
+                            <p>{msg.text}</p>
                         </div>
-                    )
+                    </div>
                 ))}
                 <div ref={bottomRef} />
             </div>

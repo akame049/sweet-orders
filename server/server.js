@@ -170,25 +170,26 @@ io.on('connection', (socket) => {
 
     socket.on('chat:message', async (data) => {
         try {
-            // CORECȚIE: Verificăm dacă Message este definit (modelul MongoDB)
-            if (Message) {
-                const newMessage = new Message({
-                    username: data.username,
-                    text: data.text,
-                    userId: data.userId,
-                    timestamp: new Date()
-                });
-                await newMessage.save();
-            }
-            // Trimitem mesajul tuturor
-            io.emit('chat:message', {
-                ...data,
+            const messageToSend = {
+                username: data.username,
+                text: data.text,
+                userId: data.userId,
+                roles: data.roles || [],
                 timestamp: new Date()
-            });
+            };
+
+            // 1. Trimitem mesajul IMEDIAT către toți clienții (pentru UI live)
+            io.emit('chat:message', messageToSend);
+
+            // 2. Salvare în MongoDB folosind MongoClient (din chat.js)
+            const db = await getDb();
+            if (db) {
+                await db.collection('messages').insertOne(messageToSend);
+                console.log("Mesaj salvat în MongoDB");
+            }
         } catch (err) {
-            console.error("Eroare MongoDB:", err);
-            // Trimitem mesajul chiar dacă baza de date crapă, pentru UI
-            io.emit('chat:message', data);
+            console.error("Eroare la procesarea mesajului:", err);
+            // Nu mai trimitem io.emit aici pentru că a fost trimis deja sus
         }
     });
 
