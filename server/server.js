@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
 const { faker } = require('@faker-js/faker');
-const { Product, Category, User, Role, Permission, sequelize } = require('../models');
+const { Product, Category, User, Role, Permission, sequelize } = require('./models');
 
 // --- IMPORT RUTE ---
 const authRoutes = require('../routes/auth');
@@ -91,9 +91,7 @@ app.get('/api/products', async (req, res) => {
 });
 
 app.post('/api/faker/start', async (req, res) => {
-    if (!req.session.user || !req.session.user.roles.includes('admin')) {
-        return res.status(403).json({ error: "Acces interzis. Admin required." });
-    }
+    console.log("Cineva a apăsat Start Faker");
     if (fakerInterval) return res.json({ message: "Rulează deja!" });
 
     fakerInterval = setInterval(async () => {
