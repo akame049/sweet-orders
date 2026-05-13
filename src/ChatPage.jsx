@@ -70,6 +70,7 @@ const ChatPage = () => {
                 userId: user.id,
                 roles: user.roles
             });
+            setText('');
         }
     };
 

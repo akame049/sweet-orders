@@ -54,12 +54,21 @@ const io = new Server(server, {
 
 // 5. LOGICA SOCKET (AICI ESTE CHAT-UL!)
 io.on('connection', (socket) => {
-    console.log('✅ Client conectat la socket:', socket.id);
+    console.log('✅ Client conectat:', socket.id);
 
-    // Ascultăm mesajele de chat
-    socket.on('message:send', (data) => {
-        console.log("💬 Mesaj nou primit:", data);
-        io.emit('message:receive', data); // Trimitem mesajul la toți live
+    socket.on('chat:message', (data) => {
+        // Trimite mesajul înapoi la toți (inclusiv expeditor)
+        io.emit('chat:message', {
+            ...data,
+            timestamp: new Date().toISOString()
+        });
+    });
+
+    socket.on('chat:join', (data) => {
+        io.emit('chat:userJoined', {
+            username: data.username,
+            timestamp: new Date().toISOString()
+        });
     });
 
     socket.on('disconnect', () => {
