@@ -46,17 +46,27 @@ export const useProducts = () => {
         const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
         socketRef.current = socket;
 
-        socket.on('connect', () => { setWsConnected(true); });
+        socket.on('connect', () => {
+            setWsConnected(true);
+            console.log("✅ Socket conectat!");
+            fetchProducts(); // ← adaugă asta! La reconectare preia ce a ratat
+        });
 
         socket.on('products:update', () => {
-            fetchProducts(); // folosește automat lastParamsRef → filtrul e păstrat!
+            console.log("🔄 Update de la server!");
+            fetchProducts();
         });
 
         socket.on('disconnect', () => setWsConnected(false));
         return () => socket.disconnect();
     }, [fetchProducts]);
 
-    useEffect(() => { fetchProducts(); }, [fetchProducts]);
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchProducts(); 
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [fetchProducts]);
 
     const addProduct = async (data) => {
         try {
