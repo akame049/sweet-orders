@@ -13,6 +13,7 @@ const chatRoutes = require('../routes/chat');
 const { Message } = require('../routes/chat');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // CORECȚIE: Adăugăm ambele variante de Vercel în CORS
 const allowedOrigins = [
@@ -33,6 +34,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'sweetorders_secret_key',
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
         secure: true, // true pentru Render (HTTPS)
         httpOnly: true,
