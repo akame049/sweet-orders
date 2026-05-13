@@ -9,13 +9,18 @@ export const useProducts = () => {
     const [wsConnected, setWsConnected] = useState(false);
     const socketRef = useRef(null);
 
-    const fetchProducts = useCallback(async () => {
+    const fetchProducts = useCallback(async (page = 1, categoryId = '') => {
         try {
-            const res = await fetch(`${API_URL}/products`);
+            // Trimitem categoryId către server!
+            const url = categoryId
+                ? `${API_URL}/products?categoryId=${categoryId}`
+                : `${API_URL}/products`;
+
+            const res = await fetch(url);
             const data = await res.json();
             setProducts(Array.isArray(data) ? data : []);
         } catch (err) {
-            console.error("Eroare fetch:", err);
+            console.error(err);
         }
     }, []);
 

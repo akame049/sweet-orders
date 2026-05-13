@@ -79,36 +79,40 @@ app.delete('/api/products/:id', async (req, res) => {
 
 // --- FAKER LIVE ---
 let fakerInterval = null;
-app.post('/api/faker/start', (req, res) => {
+app.post('/api/faker/start', async (req, res) => {
     if (fakerInterval) return res.json({ message: "Rulează deja" });
+
+    console.log("🚀 Start Faker...");
     fakerInterval = setInterval(async () => {
         try {
             const categories = await Category.findAll();
             if (categories.length === 0) {
-                console.log("❌ Faker: Nu am găsit categorii în DB!");
+                console.log("❌ Nicio categorie găsită!");
                 return;
             }
 
-            const cat = categories[0];
+            const cat = categories[Math.floor(Math.random() * categories.length)];
 
-            // Creăm produsul
-            await Product.create({
-                name: faker.commerce.productName(),
-                price: 10.00,
-                description: "Produs generat automat",
+            // Creăm produsul cu timestamp în nume să nu dea eroare de DUPLICATE
+            const newProduct = await Product.create({
+                name: `${faker.commerce.productName()} ${Math.floor(Math.random() * 999)}`,
+                price: parseFloat(faker.commerce.price({ min: 10, max: 100 })),
+                description: faker.commerce.productDescription(),
                 image: `https://loremflickr.com/320/240/cake?lock=${Math.floor(Math.random() * 1000)}`,
-                // Încearcă ambele variante dacă nu ești sigur de nume:
-                categoryId: cat.id,
-                // category_id: cat.id // Descomentează asta dacă prima dă eroare
+                categoryId: cat.id
             });
 
-            console.log("✅ Faker: Produs nou creat!");
+            console.log("🍰 Produs creat:", newProduct.name);
+
+            // TRIMITEM SEMNALUL LIVE
             io.emit('products:update');
+
         } catch (err) {
-            console.error("❌ EROARE FAKER LA SALVARE:", err.message);
+            console.error("❌ Eroare la generare:", err.message);
         }
-    }, 5000);
-    res.json({ message: "Pornit" });
+    }, 2000); // Generăm la fiecare 2 secunde pentru test
+
+    res.json({ message: "Generare pornită!" });
 });
 
 app.post('/api/faker/stop', (req, res) => {
