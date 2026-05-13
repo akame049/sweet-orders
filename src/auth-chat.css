@@ -1,0 +1,205 @@
+﻿/* ─── Auth ───────────────────────────────────────────────────────────────── */
+.auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.auth-card {
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+.auth-logo {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.auth-card h2 {
+    color: var(--p);
+    margin-bottom: 20px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+    .auth-form input {
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+
+.auth-error {
+    background: #ffebee;
+    color: #c62828;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+}
+
+.auth-switch button {
+    background: none;
+    border: none;
+    color: var(--p);
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+.auth-hint {
+    margin-top: 15px;
+    color: #999;
+}
+
+/* ─── Navbar user info ───────────────────────────────────────────────────── */
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+    .nav-user span {
+        color: var(--p);
+        font-weight: 500;
+    }
+
+.btn-logout {
+    background: none;
+    border: 1px solid #ddd;
+    padding: 5px 12px;
+    border-radius: 15px;
+    cursor: pointer;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.admin-tag {
+    background: var(--p);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 5px;
+}
+
+/* ─── Chat ───────────────────────────────────────────────────────────────── */
+.chat-container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px);
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 2px solid var(--s);
+}
+
+.chat-status.connected {
+    color: #2e7d32;
+}
+
+.chat-status.disconnected {
+    color: #c62828;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-system {
+    text-align: center;
+    color: #999;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.chat-message {
+    display: flex;
+}
+
+    .chat-message.own {
+        justify-content: flex-end;
+    }
+
+    .chat-message.other {
+        justify-content: flex-start;
+    }
+
+.chat-bubble {
+    max-width: 70%;
+    background: white;
+    border-radius: 12px;
+    padding: 10px 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+
+.chat-message.own .chat-bubble {
+    background: var(--p);
+    color: white;
+}
+
+.chat-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.chat-username {
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.chat-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.admin-badge {
+    font-size: 0.8rem;
+}
+
+.chat-bubble p {
+    margin: 0;
+}
+
+.chat-input-form {
+    display: flex;
+    gap: 10px;
+    padding: 15px 0;
+    border-top: 2px solid var(--s);
+}
+
+.chat-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    font-size: 1rem;
+}
