@@ -36,12 +36,13 @@ app.use(session({
 }));
 
 const server = http.createServer(app);
-const io = new Server(server, {
+const io = require('socket.io')(server, {
     cors: {
-        origin: ["http://localhost:5173", "https://sweet-orders-jade.vercel.app"],
+        origin: ["https://sweet-orders-jade.vercel.app"],
         methods: ["GET", "POST"],
         credentials: true
     }
+    transports: ['websocket', 'polling']
 });
 
 let fakerLoopActive = false;
@@ -223,22 +224,18 @@ io.on('connection', (socket) => {
 
     socket.on('chat:message', async (data) => {
         try {
-            const message = {
-                text: data.text,
+           
+            const newMessage = new Message({
                 username: data.username,
+                text: data.text,
                 userId: data.userId,
-                roles: data.roles,
                 timestamp: new Date()
-            };
+            });
+            await newMessage.save();
 
-            // Salvăm în MongoDB
-            const db = await getDb();
-            await db.collection('messages').insertOne(message);
-
-            // Trimitem tuturor
-            io.to('general').emit('chat:message', message);
+            io.emit('chat:message', data);
         } catch (err) {
-            console.error('Eroare chat:', err);
+            console.error("Eroare salvare mesaj MongoDB:", err);
         }
     });
 

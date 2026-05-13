@@ -20,7 +20,10 @@ const ChatPage = () => {
             .then(data => setMessages(Array.isArray(data) ? data : []));
 
         // Conectare Socket.io
-        const socket = io(SOCKET_URL, { withCredentials: true });
+        const socket = io(SOCKET_URL, {
+            withCredentials: true,
+            transports: ['websocket', 'polling'] 
+        });
         socketRef.current = socket;
 
         socket.on('connect', () => {
@@ -60,14 +63,17 @@ const ChatPage = () => {
 
     const sendMessage = (e) => {
         e.preventDefault();
-        if (!text.trim() || !socketRef.current) return;
+        if (!text.trim() || !connected) return;
 
-        socketRef.current.emit('chat:message', {
-            text: text.trim(),
+        const messageData = {
+            text,
             username: user.username,
             userId: user.id,
-            roles: user.roles
-        });
+            roles: user.roles,
+            timestamp: new Date()
+        };
+
+        socketRef.current.emit('chat:message', messageData);
         setText('');
     };
 
