@@ -109,6 +109,25 @@ app.delete('/api/products/:id', async (req, res) => {
         res.json({ message: "Șters" });
     } catch (e) { res.status(500).send(e.message); }
 });
+// RUTA ADD PRODUS
+app.post('/api/products', async (req, res) => {
+    try {
+        const { name, price, description, image, categoryId } = req.body;
+        const product = await Product.create({ name, price, description, image, categoryId });
+        io.emit('products:update');
+        res.json(product);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// RUTA EDIT PRODUS
+app.put('/api/products/:id', async (req, res) => {
+    try {
+        const { name, price, description, image, categoryId } = req.body;
+        await Product.update({ name, price, description, image, categoryId }, { where: { id: req.params.id } });
+        io.emit('products:update');
+        res.json({ message: 'Actualizat' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // 7. GENERATOR FAKER (Cu Update Live)
 let fakerInterval = null;
