@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
-    const isAdmin = () => user?.roles?.includes('admin');
+    const isAdmin = () => user?.roles?.some(r => r === 'admin' || r?.name === 'admin');
     const hasPermission = (perm) => user?.permissions?.includes(perm);
 
     return (
