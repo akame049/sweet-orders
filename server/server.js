@@ -4,8 +4,10 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
 const { faker } = require('@faker-js/faker');
-// Atenție: Ajustează calea către '../models' dacă server.js e în folderul /server
+
+// IMPORTĂ MODELELE ȘI RUTELE TALE EXISTENTE
 const { Product, Category, User, Role, sequelize } = require('../models');
+const authRoutes = require('../routes/auth'); // ASIGURĂ-TE CĂ ACEST FIȘIER EXISTĂ
 
 const app = express();
 app.set('trust proxy', 1);
@@ -18,14 +20,14 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"]
+    credentials: true
 }));
 
 app.use(express.json());
 
+// CONFIGURARE SESIUNE (Necesară pentru Login)
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'sweetorders_secret_key',
+    secret: 'secret_key_sweet_orders',
     resave: false,
     saveUninitialized: false,
     proxy: true,
@@ -39,77 +41,62 @@ app.use(session({
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: allowedOrigins, methods: ["GET", "POST"], credentials: true },
+    cors: { origin: allowedOrigins, credentials: true },
     transports: ['websocket', 'polling']
 });
 
-let fakerInterval = null;
+// --- RUTELE DE AUTENTIFICARE (Aici se repară Login-ul) ---
+app.use('/api/auth', authRoutes);
 
 // --- RUTE PRODUSE ---
 app.get('/api/products', async (req, res) => {
     try {
-        const { categoryId } = req.query;
-        const whereClause = categoryId && categoryId !== "" ? { categoryId: Number(categoryId) } : {};
         const products = await Product.findAll({
-            where: whereClause,
             include: [{ model: Category, as: 'category' }],
             order: [['createdAt', 'DESC']]
         });
         res.json(products);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
 app.delete('/api/products/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-        await Product.destroy({ where: { id: id } });
-        // Trimitem semnalul live că s-a șters ceva
+        await Product.destroy({ where: { id: req.params.id } });
         io.emit('products:update');
-        res.json({ message: "Produs șters!" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+        res.json({ message: "Șters" });
+    } catch (e) { res.status(500).send(e.message); }
 });
 
-// --- RUTE FAKER (SĂRIT PESTE ADMIN PENTRU DEBLOCARE) ---
-app.post('/api/faker/start', async (req, res) => {
-    if (fakerInterval) return res.json({ message: "Deja rulează!" });
-
+// --- FAKER LIVE ---
+let fakerInterval = null;
+app.post('/api/faker/start', (req, res) => {
+    if (fakerInterval) return res.json({ message: "Rulează deja" });
     fakerInterval = setInterval(async () => {
         try {
             const categories = await Category.findAll();
-            if (categories.length === 0) return;
-            const randomCat = categories[Math.floor(Math.random() * categories.length)];
-
-            await Product.create({
-                name: faker.commerce.productName(),
-                price: parseFloat(faker.commerce.price({ min: 5, max: 100 })),
-                description: faker.commerce.productDescription(),
-                image: `https://loremflickr.com/320/240/cake?lock=${Math.floor(Math.random() * 1000)}`,
-                categoryId: randomCat.id
-            });
-
-            // TRIMITEM SEMNALUL CĂTRE FRONTEND
-            io.emit('products:update');
-        } catch (err) { console.error("Eroare Faker:", err); }
+            if (categories.length > 0) {
+                const cat = categories[Math.floor(Math.random() * categories.length)];
+                await Product.create({
+                    name: faker.commerce.productName(),
+                    price: 15,
+                    description: "Generat automat",
+                    image: `https://loremflickr.com/320/240/cake?lock=${Math.random()}`,
+                    categoryId: cat.id
+                });
+                io.emit('products:update');
+            }
+        } catch (err) { console.error(err); }
     }, 5000);
-    res.json({ message: "Generare pornită!" });
+    res.json({ message: "Pornit" });
 });
 
 app.post('/api/faker/stop', (req, res) => {
-    if (fakerInterval) { clearInterval(fakerInterval); fakerInterval = null; }
-    res.json({ message: "Generare oprită." });
-});
-
-// --- SOCKET.IO CONNECTION ---
-io.on('connection', (socket) => {
-    console.log('Client conectat:', socket.id);
-    socket.on('disconnect', () => console.log('Client deconectat'));
+    clearInterval(fakerInterval);
+    fakerInterval = null;
+    res.json({ message: "Oprit" });
 });
 
 const PORT = process.env.PORT || 5000;
 sequelize.sync().then(() => {
-    server.listen(PORT, () => console.log(`✅ Server online pe portul ${PORT}`));
+    server.listen(PORT, () => console.log(`🚀 Server activ pe ${PORT}`));
 });
