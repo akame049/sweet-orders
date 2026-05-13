@@ -18,8 +18,9 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
+    origin: ["http://localhost:5173", "https://sweet-orders-jade.vercel.app"],
+    credentials: true, 
+    methods: ["GET", "POST", "PUT", "DELETE"]
 }));
 app.use(express.json());
 app.use(session({
@@ -27,16 +28,17 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 ore
+        sameSite: 'none', 
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigins,
+        origin: ["http://localhost:5173", "https://sweet-orders-jade.vercel.app"],
         methods: ["GET", "POST"],
         credentials: true
     }
