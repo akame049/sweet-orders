@@ -38,10 +38,10 @@ app.use(session({
 const server = http.createServer(app);
 const io = require('socket.io')(server, {
     cors: {
-        origin: ["https://sweet-orders-jade.vercel.app"],
+        origin: "https://sweet-orders-frontend.vercel.app", 
         methods: ["GET", "POST"],
         credentials: true
-    }
+    },
     transports: ['websocket', 'polling']
 });
 
