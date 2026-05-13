@@ -212,7 +212,7 @@ const ProductPage = ({ products, totalPages, currentPage, fetchProducts, selecte
             </div>
 
             {/* Add form — doar useri autentificati */}
-            {user ? (
+            {user && isAdmin() ? (
                 <div className="add-section card">
                     <h3>Adaugă Produs Nou</h3>
                     {addErrors.length > 0 && <div className="error-list">{addErrors.map((e, i) => <p key={i} className="error-msg">⚠️ {e}</p>)}</div>}
