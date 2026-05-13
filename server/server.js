@@ -109,49 +109,49 @@ const BAKERY_ITEMS = [
 
 const FAKER_CATEGORIES = { 'Cakes': 4, 'Pastries': 2, 'Cookies': 1, 'Pies': 1, 'Breads': 2 };
 
-app.post('/api/faker/start', requireAdmin, (req, res) => {
-    if (fakerInterval) return res.json({ message: 'Generatorul rulează deja.' });
 
+app.post('/api/faker/start', async (req, res) => {
+    // Verificăm dacă userul e admin (folosind sesiunea ta)
+    if (!req.session.user || !req.session.user.roles.includes('admin')) {
+        return res.status(403).json({ error: "Acces interzis. Doar adminii pot genera date." });
+    }
+
+    if (fakerInterval) return res.json({ message: "Sistemul rulează deja!" });
+
+    console.log("🚀 Pornire generare automată...");
     fakerInterval = setInterval(async () => {
         try {
-            const existingProducts = await Product.findAll({ attributes: ['name'] });
-            const existingNames = new Set(existingProducts.map(p => p.name));
-            const available = BAKERY_ITEMS.filter(p => !existingNames.has(p.name));
+            // Luăm o categorie la întâmplare din SQL (Aiven)
+            const categories = await Category.findAll();
+            if (categories.length === 0) return;
+            const randomCat = categories[Math.floor(Math.random() * categories.length)];
 
-            if (available.length === 0) {
-                clearInterval(fakerInterval);
-                fakerInterval = null;
-                io.emit('FAKER_STOPPED');
-                return;
-            }
-
-            const selected = faker.helpers.shuffle(available).slice(0, Math.min(2, available.length));
-            const batchData = selected.map(item => ({
-                name: item.name,
-                categoryId: FAKER_CATEGORIES[item.category] || 1,
-                price: Number((Math.random() * 50 + 10).toFixed(2)),
-                description: 'Proaspăt scos din cuptor!',
-                image: item.image
-            }));
-
-            const newProducts = await Product.bulkCreate(batchData);
-            const fullProducts = await Product.findAll({
-                where: { id: newProducts.map(p => p.id) },
-                include: [{ model: Category, as: 'category' }]
+            // Creăm produsul
+            await Product.create({
+                name: faker.commerce.productName(),
+                price: parseFloat(faker.commerce.price()),
+                description: faker.commerce.productDescription(),
+                image: `https://loremflickr.com/320/240/cake?lock=${Math.floor(Math.random() * 1000)}`,
+                categoryId: randomCat.id
             });
-            io.emit('FAKER_BATCH', fullProducts);
-        } catch (err) { console.error("Eroare generator:", err); }
-    }, 5000);
 
-    res.json({ message: 'Generator pornit.' });
+            // Trimitem semnal prin Socket.io să se updateze lista la toată lumea
+            io.emit('products:update');
+        } catch (err) {
+            console.error("Eroare Faker:", err);
+        }
+    }, 3000); // Generează un produs la fiecare 3 secunde
+
+    res.json({ message: "Generarea automată a pornit! " });
 });
 
-app.post('/api/faker/stop', requireAdmin, (req, res) => {
+app.post('/api/faker/stop', (req, res) => {
     if (fakerInterval) {
         clearInterval(fakerInterval);
         fakerInterval = null;
+        console.log("🛑 Generare oprită.");
     }
-    res.json({ message: 'Generator oprit.' });
+    res.json({ message: "Generarea automată a fost oprită." });
 });
 
 // --- CORECȚIE: Socket.io Chat Logic ---
