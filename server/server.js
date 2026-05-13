@@ -8,9 +8,6 @@ const { Product, Category, User, Role, Permission, sequelize } = require('../mod
 
 const authRoutes = require('../routes/auth');
 const chatRoutes = require('../routes/chat');
-// CORECȚIE: Importăm modelul Message pentru MongoDB
-// Presupunând că exportul din chat.js include modelul Mongoose
-const { Message } = require('../routes/chat');
 
 const app = express();
 app.set('trust proxy', 1);

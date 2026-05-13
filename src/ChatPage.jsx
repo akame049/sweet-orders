@@ -63,18 +63,14 @@ const ChatPage = () => {
 
     const sendMessage = (e) => {
         e.preventDefault();
-        if (!text.trim() || !connected) return;
-
-        const messageData = {
-            text,
-            username: user.username,
-            userId: user.id,
-            roles: user.roles,
-            timestamp: new Date()
-        };
-
-        socketRef.current.emit('chat:message', messageData);
-        setText('');
+        if (text.trim() && connected) {
+            socketRef.current.emit('chat:message', {
+                text: text,
+                username: user.username,
+                userId: user.id,
+                roles: user.roles
+            });
+        }
     };
 
     const formatTime = (ts) => {
