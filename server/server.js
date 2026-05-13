@@ -27,6 +27,23 @@ app.use(cors({
 }));
 
 app.use(express.json());
+// COD TEMPORAR PENTRU REPARARE ADMIN
+app.get('/api/make-me-admin', async (req, res) => {
+    try {
+        // Înlocuiește cu email-ul tău exact
+        const email = "admin@sweetorders.com";
+        const user = await User.findOne({ where: { email } });
+        const adminRole = await Role.findOne({ where: { name: 'admin' } });
+
+        if (user && adminRole) {
+            await user.addRole(adminRole);
+            return res.send("✅ Felicitări! Acum ești admin în baza de date. Mergi pe site, dă Logout și apoi Login.");
+        }
+        res.status(404).send("Utilizatorul sau Rolul nu a fost găsit.");
+    } catch (err) {
+        res.status(500).send("Eroare: " + err.message);
+    }
+});
 
 app.use(session({
     secret: process.env.SESSION_SECRET || 'sweetorders_secret_key',
