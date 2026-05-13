@@ -5,7 +5,7 @@ const cors = require('cors');
 const session = require('express-session');
 const { faker } = require('@faker-js/faker');
 
-// IMPORTĂ MODELELE ȘI RUTELE
+// 1. IMPORTURI MODELE ȘI RUTE
 const { Product, Category, User, Role, sequelize } = require('../models');
 const authRoutes = require('../routes/auth');
 
@@ -18,6 +18,7 @@ const allowedOrigins = [
     "https://sweet-orders-frontend.vercel.app"
 ];
 
+// 2. CONFIGURARE CORS
 app.use(cors({
     origin: allowedOrigins,
     credentials: true
@@ -25,6 +26,7 @@ app.use(cors({
 
 app.use(express.json());
 
+// 3. CONFIGURARE SESIUNE (Pentru a repara erorile 401 de Login)
 app.use(session({
     secret: 'secret_key_sweet_orders',
     resave: false,
@@ -39,20 +41,25 @@ app.use(session({
 }));
 
 const server = http.createServer(app);
+
+// 4. CONFIGURARE SOCKET.IO (Chat + Produse Live)
 const io = new Server(server, {
-    cors: { origin: allowedOrigins, credentials: true },
+    cors: {
+        origin: allowedOrigins,
+        credentials: true,
+        methods: ["GET", "POST"]
+    },
     transports: ['websocket', 'polling']
 });
 
-// --- LOGICA DE CHAT (REPARATĂ) ---
+// 5. LOGICA SOCKET (AICI ESTE CHAT-UL!)
 io.on('connection', (socket) => {
     console.log('✅ Client conectat la socket:', socket.id);
 
-    // Când un client trimite un mesaj
+    // Ascultăm mesajele de chat
     socket.on('message:send', (data) => {
-        console.log("Mesaj primit:", data);
-        // Îl trimitem la TOȚI ceilalți
-        io.emit('message:receive', data);
+        console.log("💬 Mesaj nou primit:", data);
+        io.emit('message:receive', data); // Trimitem mesajul la toți live
     });
 
     socket.on('disconnect', () => {
@@ -60,13 +67,20 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- RUTE API ---
+// 6. RUTE API
 app.use('/api/auth', authRoutes);
 
+// Rută dummy pentru chat ca să nu mai dea 404/SyntaxError în consolă
+app.get('/api/chat/messages', (req, res) => {
+    res.json([]);
+});
+
+// RUTA PRODUSE (Cu Filtrul Reparată)
 app.get('/api/products', async (req, res) => {
     try {
         const { categoryId } = req.query;
         const whereClause = categoryId && categoryId !== "" ? { categoryId: Number(categoryId) } : {};
+
         const products = await Product.findAll({
             where: whereClause,
             include: [{ model: Category, as: 'category' }],
@@ -78,46 +92,56 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
+// RUTA DELETE (Cu Update Live)
 app.delete('/api/products/:id', async (req, res) => {
     try {
         await Product.destroy({ where: { id: req.params.id } });
-        io.emit('products:update'); // Semnal live pentru ștergere
+        io.emit('products:update'); // Anunță front-end-ul să dispară produsul
         res.json({ message: "Șters" });
     } catch (e) { res.status(500).send(e.message); }
 });
 
-// --- FAKER LIVE ---
+// 7. GENERATOR FAKER (Cu Update Live)
 let fakerInterval = null;
 app.post('/api/faker/start', async (req, res) => {
     if (fakerInterval) return res.json({ message: "Rulează deja" });
 
+    console.log("🚀 Pornire Generator...");
     fakerInterval = setInterval(async () => {
         try {
             const categories = await Category.findAll();
             if (categories.length > 0) {
                 const cat = categories[Math.floor(Math.random() * categories.length)];
+
                 const newProduct = await Product.create({
                     name: `${faker.commerce.productName()} ${Math.floor(Math.random() * 999)}`,
-                    price: parseFloat(faker.commerce.price({ min: 10, max: 100 })),
+                    price: parseFloat(faker.commerce.price({ min: 5, max: 50 })),
                     description: faker.commerce.productDescription(),
                     image: `https://loremflickr.com/320/240/cake?lock=${Math.floor(Math.random() * 1000)}`,
                     categoryId: cat.id
                 });
-                io.emit('products:update'); // Semnal live pentru adăugare
+
+                console.log("🍰 Produs creat:", newProduct.name);
+                io.emit('products:update'); // Trimite semnalul live către front-end!
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error("❌ Eroare Faker:", err.message);
+        }
     }, 3000);
 
     res.json({ message: "Generare pornită!" });
 });
 
 app.post('/api/faker/stop', (req, res) => {
-    clearInterval(fakerInterval);
-    fakerInterval = null;
+    if (fakerInterval) {
+        clearInterval(fakerInterval);
+        fakerInterval = null;
+    }
     res.json({ message: "Oprit" });
 });
 
+// 8. PORNIRE SERVER
 const PORT = process.env.PORT || 5000;
 sequelize.sync().then(() => {
-    server.listen(PORT, () => console.log(`🚀 Server activ pe portul ${PORT}`));
+    server.listen(PORT, () => console.log(`✅ Serverul rulează pe portul ${PORT}`));
 });
