@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
-import { io } from 'socket.io-client'; 
+import { io } from 'socket.io-client';
 
 const API_URL = 'https://sweet-orders-u2ai.onrender.com/api';
 const SOCKET_URL = 'https://sweet-orders-u2ai.onrender.com';
@@ -14,22 +14,21 @@ export const useProducts = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [isSyncing, setIsSyncing] = useState(false);
     const [wsConnected, setWsConnected] = useState(false);
-    const socketRef = useRef(null); 
-    const ITEMS_PER_PAGE = 6;
-
     const [currentCategory, setCurrentCategory] = useState('');
+    const socketRef = useRef(null);
+    const ITEMS_PER_PAGE = 6;
 
     const fetchProducts = useCallback(async (page = 1, categoryId = '') => {
         if (!navigator.onLine) return;
         try {
             const categoryParam = categoryId ? `&categoryId=${categoryId}` : '';
-
             const res = await fetch(`${API_URL}/products?page=${page}&limit=${ITEMS_PER_PAGE}${categoryParam}`);
 
             if (!res.ok) throw new Error('Server error');
 
             const data = await res.json();
 
+            // Actualizăm stările
             setProducts(Array.isArray(data) ? data : []);
             setTotal(data.length || 0);
             setCurrentPage(page);
@@ -42,6 +41,7 @@ export const useProducts = () => {
         }
     }, []);
 
+    // Effect pentru monitorizarea conexiunii la internet
     useEffect(() => {
         const goOnline = () => {
             setIsOnline(true);
@@ -51,6 +51,7 @@ export const useProducts = () => {
 
         window.addEventListener('online', goOnline);
         window.addEventListener('offline', goOffline);
+
         fetchProducts(1);
 
         return () => {
@@ -59,8 +60,11 @@ export const useProducts = () => {
         };
     }, [fetchProducts]);
 
+    // Effect pentru Socket.io (Aici se întâmplă magia Live)
     useEffect(() => {
-        const socket = io(SOCKET_URL);
+        const socket = io(SOCKET_URL, {
+            transports: ['websocket', 'polling']
+        });
         socketRef.current = socket;
 
         socket.on('connect', () => {
@@ -72,27 +76,15 @@ export const useProducts = () => {
             setWsConnected(false);
         });
 
-        socket.on('FAKER_BATCH', (newProducts) => {
-            console.log("Batch primit:", newProducts);
-            setProducts(prev => {
-                const existingIds = new Set(prev.map(p => p.id));
-                const existingNames = new Set(prev.map(p => p.name));
-                const uniqueNew = newProducts.filter(p =>
-                    !existingIds.has(p.id) && !existingNames.has(p.name)
-                );
-                if (uniqueNew.length === 0) return prev;
-                return [...prev, ...uniqueNew]; 
-            });
-            setTotal(prev => prev + newProducts.length);
+        // REPARAREA PENTRU FAKER: Ascultăm semnalul trimis de server.js
+        socket.on('products:update', () => {
+            console.log("🔔 Semnal primit: Actualizare produse în timp real!");
+            fetchProducts(currentPage, currentCategory);
         });
 
+        // Listenere adiționale (pentru compatibilitate)
         socket.on('PRODUCT_ADDED', (newProduct) => {
-            setProducts(prev => {
-                if (prev.find(p => p.id === newProduct.id || p.name === newProduct.name)) {
-                    return prev;
-                }
-                return [...prev, newProduct];
-            });
+            fetchProducts(currentPage, currentCategory);
         });
 
         socket.on('PRODUCT_DELETED', (id) => {
@@ -107,7 +99,7 @@ export const useProducts = () => {
         return () => {
             if (socketRef.current) socketRef.current.disconnect();
         };
-    }, []);
+    }, [fetchProducts, currentPage, currentCategory]);
 
     const syncOfflineQueue = async () => {
         if (offlineQueue.length === 0) return;
@@ -133,16 +125,15 @@ export const useProducts = () => {
             image: productData.image || `https://loremflickr.com/150/150/bakery?lock=${Date.now()}`
         };
 
-        const optimisticProduct = { ...formattedData, id: Date.now(), _offline: true };
-
         if (!navigator.onLine) {
+            const optimisticProduct = { ...formattedData, id: Date.now(), _offline: true };
             setProducts(prev => [...prev, optimisticProduct]);
             offlineQueue.push({
                 url: `${API_URL}/products`,
                 options: {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formattedData), 
+                    body: JSON.stringify(formattedData),
                 }
             });
             return { success: true, offline: true };
@@ -152,24 +143,21 @@ export const useProducts = () => {
             const res = await fetch(`${API_URL}/products`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formattedData), 
+                body: JSON.stringify(formattedData),
             });
 
             const data = await res.json();
             if (!res.ok) return { success: false, errors: data.errors };
 
-            fetchProducts(currentPage);
+            fetchProducts(currentPage, currentCategory);
             return { success: true };
         } catch (err) {
             return { success: false, errors: ['Network error'] };
         }
     };
 
-   
-
     const updateProduct = async (id, productData) => {
         const cleanId = String(id).split(':')[0];
-
         try {
             const res = await fetch(`${API_URL}/products/${cleanId}`, {
                 method: 'PUT',
@@ -179,7 +167,7 @@ export const useProducts = () => {
 
             if (!res.ok) throw new Error('Eroare la salvare');
 
-            await fetchProducts(currentPage);
+            fetchProducts(currentPage, currentCategory);
             return { success: true };
         } catch (err) {
             return { success: false, errors: [err.message] };
@@ -188,7 +176,6 @@ export const useProducts = () => {
 
     const deleteProduct = async (id) => {
         setProducts(prev => prev.filter(p => p.id !== id));
-
         if (!navigator.onLine) {
             offlineQueue.push({
                 url: `${API_URL}/products/${id}`,
@@ -200,7 +187,7 @@ export const useProducts = () => {
         try {
             const res = await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
             if (!res.ok) {
-                fetchProducts(currentPage);
+                fetchProducts(currentPage, currentCategory);
                 return { success: false };
             }
             return { success: true };
@@ -210,15 +197,23 @@ export const useProducts = () => {
     };
 
     const startFaker = async () => {
-        const res = await fetch(`${API_URL}/faker/start`, { method: 'POST' });
-        const data = await res.json();
-        console.log(data.message);
+        try {
+            const res = await fetch(`${API_URL}/faker/start`, { method: 'POST' });
+            const data = await res.json();
+            console.log("Faker Info:", data.message);
+        } catch (err) {
+            console.error("Nu s-a putut porni Faker-ul");
+        }
     };
 
     const stopFaker = async () => {
-        const res = await fetch(`${API_URL}/faker/stop`, { method: 'POST' });
-        const data = await res.json();
-        console.log(data.message);
+        try {
+            const res = await fetch(`${API_URL}/faker/stop`, { method: 'POST' });
+            const data = await res.json();
+            console.log("Faker Info:", data.message);
+        } catch (err) {
+            console.error("Nu s-a putut opri Faker-ul");
+        }
     };
 
     return {
