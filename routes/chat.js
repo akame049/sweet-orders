@@ -58,5 +58,5 @@ router.post('/messages', async (req, res) => {
     }
 });
 
-module.exports = router;
-module.exports.getDb = getDb;
+
+module.exports = { router, getDb };
