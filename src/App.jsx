@@ -14,6 +14,9 @@ const Navigation = ({ view, setView }) => {
 
     return (
         <nav className="navbar">
+            <div style={{ background: 'red', color: 'white', padding: '5px' }}>
+                user: {user?.username || 'NULL'} | roles: {JSON.stringify(user?.roles)} | admin: {String(!!adminCheck)}
+            </div>
             <div className="nav-logo" onClick={() => setView('home')} style={{ cursor: 'pointer' }}>
                 🍰 SweetOrders
             </div>
