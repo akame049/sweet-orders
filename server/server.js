@@ -241,11 +241,12 @@ app.put('/api/logs/suspicious/:id/resolve', requireAdmin, async (req, res) => {
 //});
 const PORT = process.env.PORT || 5000;
 
-// În producție pornim serverul direct, fără să mai forțăm sync-ul bazei de date
 if (process.env.NODE_ENV === 'production') {
-    server.listen(PORT, () => console.log(`✅ Serverul de producție rulează pe portul ${PORT}`));
+    // Adăugăm obligatoriu '0.0.0.0' ca Render să poată ruta traficul extern către portul tău
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`✅ Serverul de producție rulează pe portul ${PORT}`);
+    });
 } else {
-    // Pe calculatorul local (development) lăsăm sync-ul pornit ca să-ți creeze tabelele dacă e nevoie
     sequelize.sync().then(() => {
         server.listen(PORT, () => console.log(`✅ Serverul local rulează pe portul ${PORT}`));
     });
