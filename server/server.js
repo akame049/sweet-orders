@@ -19,13 +19,21 @@ app.set('trust proxy', 1);
 
 const allowedOrigins = [
     "http://localhost:5173",
+    "https://localhost:5173",
     "https://sweet-orders-jade.vercel.app",
     "https://sweet-orders-frontend.vercel.app"
 ];
 
 // 2. CONFIGURARE CORS
 app.use(cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+        // Dacă cererea vine de la o adresă din listă, sau de la un IP local (cum e telefonul tău), o lăsăm să treacă
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('https://192.168.')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Blocat de CORS (SweetOrders Safety)'));
+        }
+    },
     credentials: true
 }));
 
@@ -82,7 +90,7 @@ const server = https.createServer(sslOptions, app);
 // 4. CONFIGURARE SOCKET.IO (Chat + Produse Live)
 const io = new Server(server, {
     cors: {
-        origin: allowedOrigins,
+        origin: true,
         credentials: true,
         methods: ["GET", "POST"]
     },
