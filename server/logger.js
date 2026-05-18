@@ -11,14 +11,13 @@ const userChatCache = {};       // { userId: [timestamps] }
 const loginFailCache = {};      // { ip_sau_username: [timestamps] }
 
 const checkSuspicious = async (userId, username, method, endpoint, res, req) => {
-    // Dacă e vizitator anonim și nu e pe login, nu avem ce număra per user
-    if (!userId && !endpoint.includes('/login')) return null;
+    // Identificăm utilizatorul după ID, dacă e logat, sau după username/email/IP dacă e anonim la login
+    const identifier = userId || username || (req && req.ip) || 'anonim';
 
     const now = Date.now();
     const oneMinute = 60 * 1000;
-    const identifier = userId || username || req.ip;
 
-    // Inițializare cache globale
+    // Inițializare cache în memorie dacă nu există
     if (!userActionCache[identifier]) userActionCache[identifier] = [];
     if (!userChatCache[identifier]) userChatCache[identifier] = [];
     if (!loginFailCache[identifier]) loginFailCache[identifier] = [];
@@ -28,31 +27,32 @@ const checkSuspicious = async (userId, username, method, endpoint, res, req) => 
     userChatCache[identifier] = userChatCache[identifier].filter(t => now - t < oneMinute);
     loginFailCache[identifier] = loginFailCache[identifier].filter(t => now - t < oneMinute);
 
-    // 1. Contorizare acțiuni generale globale
+    // 1. Contorizare acțiuni generale
     userActionCache[identifier].push(now);
 
-    // 2. Contorizare mesaje CHAT (Dacă trimite POST pe chat)
+    // 2. Regula pentru Spam pe Chat
     if (method === 'POST' && endpoint.includes('/chat')) {
         userChatCache[identifier].push(now);
     }
 
-    // 3. Contorizare Login Eșuat (Prindem când res.statusCode devine 401 la finalul cererii)
-    if (endpoint.includes('/login') && res.statusCode === 401) {
+    // 3. Regula pentru Login repetat (Brute Force)
+    // De data asta verificăm direct dacă ruta accesată este de login, indiferent de ce zice statusul
+    if (method === 'POST' && endpoint.includes('/login')) {
         loginFailCache[identifier].push(now);
     }
 
     const totalActions = userActionCache[identifier].length;
     const totalChatMessages = userChatCache[identifier].length;
-    const totalLoginFailures = loginFailCache[identifier].length;
+    const totalLoginAttempts = loginFailCache[identifier].length;
 
     let suspicious = false;
     let reason = '';
 
-    // Aplicarea regulilor tale
-    if (totalLoginFailures > MAX_LOGIN_ATTEMPTS) {
+    // Verificăm limitele stabilite de tine
+    if (totalLoginAttempts > MAX_LOGIN_ATTEMPTS) { // MAX_LOGIN_ATTEMPTS este 4
         suspicious = true;
-        reason = `Tentativă Brute Force (${totalLoginFailures} parole greșite)`;
-    } else if (totalChatMessages > MAX_CHAT_MESSAGES_PER_MINUTE) {
+        reason = `Tentativă Brute Force (${totalLoginAttempts} încercări de login într-un minut)`;
+    } else if (totalChatMessages > MAX_CHAT_MESSAGES_PER_MINUTE) { // MAX_CHAT_MESSAGES_PER_MINUTE este 5
         suspicious = true;
         reason = `Spam pe chat (${totalChatMessages} mesaje într-un minut)`;
     } else if (totalActions >= MAX_ACTIONS_PER_MINUTE) {
@@ -61,19 +61,19 @@ const checkSuspicious = async (userId, username, method, endpoint, res, req) => 
     }
 
     if (suspicious) {
-        // Căutăm dacă userul e deja marcat în DB ca nerezolvat
-        // Folosim un ID valid sau 0 pentru tentative de brute force anonime
-        const searchId = userId || 0;
-        const existing = await SuspiciousUser.findOne({ where: { userId: searchId, resolved: false } });
+        // ID-ul salvat în tabel: dacă nu avem userId, punem null sau 0 ca să nu crape relația din DB
+        const searchId = userId || null;
+
+        const existing = await SuspiciousUser.findOne({ where: { username: identifier, resolved: false } });
 
         if (!existing) {
             await SuspiciousUser.create({
                 userId: searchId,
-                username: username || 'anonim_bruteforce',
+                username: identifier,
                 reason,
                 actionCount: totalActions
             });
-            console.warn(`🚨 USER SUSPECT: ${username} — ${reason}`);
+            console.warn(`🚨 USER SUSPECT DETECTAT: ${identifier} — ${reason}`);
         } else {
             await existing.update({ actionCount: totalActions, reason });
         }
