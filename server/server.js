@@ -43,6 +43,28 @@ app.use(session({
     }
 }));
 
+app.use(async (req, res, next) => {
+    if (req.session?.user && (!req.session.user.roles || req.session.user.roles.length === 0)) {
+        try {
+            // Re-interogăm baza de date pentru a aduce rolurile utilizatorului curent din sesiune
+            const userWithRoles = await User.findByPk(req.session.user.id, {
+                include: [{ model: Role, as: 'roles' }]
+            });
+            if (userWithRoles) {
+                // Extragem doar numele rolurilor ca o listă de string-uri, ex: ['admin', 'user']
+                // sau păstrăm obiectele complete în funcție de ce trimite baza de date
+                const rolesArray = userWithRoles.roles.map(r => r.name.toLowerCase());
+
+                // Salvăm în sesiune formatul curat pe care middleware-ul și frontend-ul îl cer
+                req.session.user.roles = rolesArray;
+            }
+        } catch (err) {
+            console.error("Eroare la injectarea rolurilor în sesiune:", err.message);
+        }
+    }
+    next();
+});
+
 app.use(logAction);
 
 const server = http.createServer(app);
