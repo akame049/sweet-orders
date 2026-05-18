@@ -1,6 +1,6 @@
 ﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const API_URL = 'https://sweet-orders-u2ai.onrender.com/api';
+const API_URL = 'https://localhost:5000/api'; 
 
 const AuthContext = createContext(null);
 

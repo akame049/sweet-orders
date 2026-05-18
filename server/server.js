@@ -47,9 +47,9 @@ app.use(session({
     rolling: true,
     proxy: true,
     cookie: {
-        secure: true,
+        secure: false,
         httpOnly: true,
-        sameSite: 'none',
+        sameSite: 'lax',
         maxAge: 5 * 60 * 1000
     }
 }));

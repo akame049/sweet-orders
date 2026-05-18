@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
-const API_URL = 'https://sweet-orders-u2ai.onrender.com/api';
+const API_URL = 'https://localhost:5000/api'; 
 
 const LogsPage = () => {
     const { isAdmin } = useAuth();
