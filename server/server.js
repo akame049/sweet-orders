@@ -235,7 +235,15 @@ app.put('/api/logs/suspicious/:id/resolve', requireAdmin, async (req, res) => {
 });
 
 // 8. PORNIRE SERVER
-const PORT = process.env.PORT || 5000;
-sequelize.sync().then(() => {
-    server.listen(PORT, () => console.log(`✅ Serverul rulează pe portul ${PORT}`));
-});
+//const PORT = process.env.PORT || 5000;
+//sequelize.sync().then(() => {
+  //  server.listen(PORT, () => console.log(`✅ Serverul rulează pe portul ${PORT}`));
+//});
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 5000;
+    sequelize.sync().then(() => {
+        server.listen(PORT, () => console.log(`✅ Server local pornit pe portul ${PORT}`));
+    });
+}
+
+module.exports = app;

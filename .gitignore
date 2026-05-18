@@ -2,3 +2,5 @@ node_modules/
 .vs/
 .env
 coverage/
+.vercel
+.env*.local
