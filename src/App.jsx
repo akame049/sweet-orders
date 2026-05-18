@@ -14,10 +14,6 @@ const Navigation = ({ view, setView }) => {
 
     return (
         <nav className="navbar">
-            {/* Am înlocuit adminCheck cu isAdmin() pentru a nu mai crăpa codul */}
-            <div style={{ background: 'red', color: 'white', padding: '5px' }}>
-                user: {user?.username || 'NULL'} | roles: {JSON.stringify(user?.roles)} | admin: {String(isAdmin())}
-            </div>
             <div className="nav-logo" onClick={() => setView('home')} style={{ cursor: 'pointer' }}>
                 🍰 SweetOrders
             </div>
@@ -279,7 +275,7 @@ const App = () => {
             <Navigation key={user?.id || 'guest'} view={view} setView={setView} />
             <StatusBar isOnline={isOnline} isSyncing={isSyncing} wsConnected={wsConnected} offlinePending={offlinePending} />
             <main className="content-area">
-                {!user && <AuthPage onSuccess={() => setView('products')} />}
+                {view === 'login' && !user && <AuthPage onSuccess={() => setView('products')} />}
                 {view === 'chat' && user && <ChatPage />}
                 {view === 'home' && <HomePage setView={setView} />}
                 {view === 'products' && (
