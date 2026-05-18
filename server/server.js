@@ -1,5 +1,7 @@
 ﻿const express = require('express');
-const http = require('http');
+const https = require('https'); // Schimbat din http în https
+const fs = require('fs');
+const path = require('path');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
@@ -34,12 +36,13 @@ app.use(session({
     secret: 'secret_key_sweet_orders',
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     proxy: true,
     cookie: {
         secure: true,
         httpOnly: true,
         sameSite: 'none',
-        maxAge: 24 * 60 * 60 * 1000
+        maxAge: 5 * 60 * 1000
     }
 }));
 
@@ -67,7 +70,14 @@ app.use(async (req, res, next) => {
 
 app.use(logAction);
 
-const server = http.createServer(app);
+// Încărcăm certificatele SSL create anterior cu mkcert
+const sslOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'server.key')),
+    cert: fs.readFileSync(path.join(__dirname, 'server.cert'))
+};
+
+// Se creează un server securizat HTTPS în loc de HTTP
+const server = https.createServer(sslOptions, app);
 
 // 4. CONFIGURARE SOCKET.IO (Chat + Produse Live)
 const io = new Server(server, {
@@ -234,20 +244,19 @@ app.put('/api/logs/suspicious/:id/resolve', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 8. PORNIRE SERVER
-//const PORT = process.env.PORT || 5000;
-//sequelize.sync().then(() => {
-  //  server.listen(PORT, () => console.log(`✅ Serverul rulează pe portul ${PORT}`));
-//});
+// 8. PORNIRE SERVER SECURIZAT (HTTPS + LAN)
 const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV === 'production') {
-    // Adăugăm obligatoriu '0.0.0.0' ca Render să poată ruta traficul extern către portul tău
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Serverul de producție rulează pe portul ${PORT}`);
     });
 } else {
     sequelize.sync().then(() => {
-        server.listen(PORT, () => console.log(`✅ Serverul local rulează pe portul ${PORT}`));
+        // '0.0.0.0' permite oricărui dispozitiv din aceeași rețea locală (LAN) să acceseze backend-ul
+        server.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Serverul local SECURIZAT rulează pe https://localhost:${PORT}`);
+            console.log(`📢 Pentru laborator, accesează-l din LAN folosind IP-ul tău local pe portul ${PORT}`);
+        });
     });
 }
