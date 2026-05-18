@@ -6,6 +6,7 @@ import AuthPage from './AuthPage';
 import ChatPage from './ChatPage';
 import './App.css';
 import './auth-chat.css';
+import LogsPage from './LogsPage';
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
 const Navigation = ({ view, setView }) => {
@@ -21,6 +22,9 @@ const Navigation = ({ view, setView }) => {
                 <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Products</button>
                 {user && (
                     <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>💬 Chat</button>
+                )}
+                {user && isAdmin() && (
+                    <button className={view === 'logs' ? 'active' : ''} onClick={() => setView('logs')}>🛡️ Logs</button>
                 )}
             </div>
             <div className="nav-user">
@@ -290,6 +294,7 @@ const App = () => {
                         startFaker={startFaker} stopFaker={stopFaker}
                     />
                 )}
+                {view === 'logs' && user && <LogsPage />}
             </main>
         </div>
     );

@@ -4,9 +4,13 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
 const { faker } = require('@faker-js/faker');
+const { logAction } = require('./middleware/logger');
+
+// Aplică middleware DUPĂ session
+app.use(logAction);
 
 // 1. IMPORTURI MODELE ȘI RUTE
-const { Product, Category, User, Role, sequelize } = require('../models');
+const { Product, Category, User, Role, Log, SuspiciousUser, sequelize } = require('../models');
 const authRoutes = require('../routes/auth');
 
 const app = express();
@@ -166,6 +170,45 @@ app.post('/api/faker/stop', (req, res) => {
         fakerInterval = null;
     }
     res.json({ message: "Oprit" });
+});
+
+
+
+// ─── RUTE ADMIN LOGS ───────────────────────────────────────────────
+const requireAdmin = (req, res, next) => {
+    if (!req.session?.user) return res.status(401).json({ error: 'Neautentificat' });
+    if (!req.session.user.roles?.includes('admin')) return res.status(403).json({ error: 'Doar admin' });
+    next();
+};
+
+// Toate logurile
+app.get('/api/logs', requireAdmin, async (req, res) => {
+    try {
+        const logs = await Log.findAll({
+            order: [['createdAt', 'DESC']],
+            limit: 200
+        });
+        res.json(logs);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Doar logurile suspecte
+app.get('/api/logs/suspicious', requireAdmin, async (req, res) => {
+    try {
+        const suspects = await SuspiciousUser.findAll({
+            where: { resolved: false },
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(suspects);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Marchează suspect ca rezolvat
+app.put('/api/logs/suspicious/:id/resolve', requireAdmin, async (req, res) => {
+    try {
+        await SuspiciousUser.update({ resolved: true }, { where: { id: req.params.id } });
+        res.json({ message: 'Rezolvat' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // 8. PORNIRE SERVER
