@@ -2,8 +2,8 @@
 import { useAuth } from './AuthContext';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'https://sweet-orders-u2ai.onrender.com';
-const API_URL = 'https://sweet-orders-u2ai.onrender.com/api';
+const SOCKET_URL = 'https://10.189.173.235:5000';
+const API_URL = 'https://10.189.173.235:5000/api'; 
 
 const ChatPage = () => {
     const { user } = useAuth();

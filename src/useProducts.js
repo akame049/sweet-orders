@@ -1,8 +1,8 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const API_URL = 'https://sweet-orders-u2ai.onrender.com/api';
-const SOCKET_URL = 'https://sweet-orders-u2ai.onrender.com';
+const API_URL = 'https://10.189.173.235:5000/api';
+const SOCKET_URL = 'https://10.189.173.235:5000';
 
 export const useProducts = () => {
     const [products, setProducts] = useState([]);
@@ -43,13 +43,17 @@ export const useProducts = () => {
     }, []);
 
     useEffect(() => {
-        const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+        const socket = io(SOCKET_URL, {
+            transports: ['websocket', 'polling'],
+            withCredentials: true,
+            rejectUnauthorized: false // Îi spune browserului să accepte certificatul local mkcert
+        });
         socketRef.current = socket;
 
         socket.on('connect', () => {
             setWsConnected(true);
             console.log("✅ Socket conectat!");
-            fetchProducts(); // ← adaugă asta! La reconectare preia ce a ratat
+            fetchProducts();
         });
 
         socket.on('products:update', () => {
