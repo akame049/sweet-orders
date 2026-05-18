@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
 const { faker } = require('@faker-js/faker');
-const { logAction } = require('./middleware/logger');
+const { logAction } = require('./logger');
 
 // Aplică middleware DUPĂ session
 app.use(logAction);
