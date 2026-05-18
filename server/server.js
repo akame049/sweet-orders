@@ -6,8 +6,7 @@ const session = require('express-session');
 const { faker } = require('@faker-js/faker');
 const { logAction } = require('./logger');
 
-// Aplică middleware DUPĂ session
-app.use(logAction);
+
 
 // 1. IMPORTURI MODELE ȘI RUTE
 const { Product, Category, User, Role, Log, SuspiciousUser, sequelize } = require('../models');
@@ -43,6 +42,8 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000
     }
 }));
+
+app.use(logAction);
 
 const server = http.createServer(app);
 
