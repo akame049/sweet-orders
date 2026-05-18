@@ -279,10 +279,10 @@ const App = () => {
 
     return (
         <div className="app-wrapper">
-            <Navigation view={view} setView={setView} />
+            <Navigation key={user?.id || 'guest'} view={view} setView={setView} />
             <StatusBar isOnline={isOnline} isSyncing={isSyncing} wsConnected={wsConnected} offlinePending={offlinePending} />
             <main className="content-area">
-                {view === 'login' && !user && <AuthPage onSuccess={() => setView('products')} />}
+                {!user && <AuthPage onSuccess={() => setView('products')} />}
                 {view === 'chat' && user && <ChatPage />}
                 {view === 'home' && <HomePage setView={setView} />}
                 {view === 'products' && (
