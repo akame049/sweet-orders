@@ -21,7 +21,13 @@ const Navigation = ({ view, setView }) => {
                 <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>Home</button>
                 <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Products</button>
                 {user && (
-                    <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>💬 Chat</button>
+                    <>
+                        <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>💬 Chat</button>
+                        {/* Numele utilizatorului pus elegant lângă butonul de Chat */}
+                        <span className="user-nav-display" style={{ color: '#6a1b9a', fontWeight: '500', padding: '0 10px', alignSelf: 'center' }}>
+                            👤 {user?.username || user?.email}
+                        </span>
+                    </>
                 )}
 
                 {/* Butonul de Logs care apare doar dacă utilizatorul este admin */}
