@@ -32,7 +32,7 @@ const Navigation = ({ view, setView }) => {
                 {user ? (
                     <button onClick={logout} style={{ color: '#d32f2f' }}>Logout</button>
                 ) : (
-                    <button onClick={() => setView('products')}>Login</button>
+                    <button className={view === 'login' ? 'active' : ''} onClick={() => setView('login')}>Login</button>
                 )}
             </div>
         </nav>
