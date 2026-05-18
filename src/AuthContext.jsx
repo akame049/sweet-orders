@@ -47,7 +47,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
-    const isAdmin = () => user?.roles?.some(r => r === 'admin' || r?.name === 'admin');
+    const isAdmin = () => {
+        if (!user?.roles) return false;
+        return user.roles.some(r =>
+            typeof r === 'string'
+                ? r.toLowerCase() === 'admin'
+                : r?.name?.toLowerCase() === 'admin'
+        );
+    };
     const hasPermission = (perm) => user?.permissions?.includes(perm);
 
     return (
