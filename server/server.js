@@ -9,7 +9,7 @@ const { logAction } = require('./logger');
 
 
 // 1. IMPORTURI MODELE ȘI RUTE
-const { Product, Category, User, Role, Log, SuspiciousUser, sequelize } = require('../models');
+const { Product, Category, User, Role, Log, SuspiciousUser, sequelize } = require('./models');
 const authRoutes = require('../routes/auth');
 
 const app = express();
