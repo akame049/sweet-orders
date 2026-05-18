@@ -14,8 +14,9 @@ const Navigation = ({ view, setView }) => {
 
     return (
         <nav className="navbar">
+            {/* Am înlocuit adminCheck cu isAdmin() pentru a nu mai crăpa codul */}
             <div style={{ background: 'red', color: 'white', padding: '5px' }}>
-                user: {user?.username || 'NULL'} | roles: {JSON.stringify(user?.roles)} | admin: {String(!!adminCheck)}
+                user: {user?.username || 'NULL'} | roles: {JSON.stringify(user?.roles)} | admin: {String(isAdmin())}
             </div>
             <div className="nav-logo" onClick={() => setView('home')} style={{ cursor: 'pointer' }}>
                 🍰 SweetOrders
@@ -26,23 +27,16 @@ const Navigation = ({ view, setView }) => {
                 {user && (
                     <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>💬 Chat</button>
                 )}
+
+                {/* Butonul de Logs care apare doar dacă utilizatorul este admin */}
                 {user && isAdmin() && (
-                    <button className={view === 'logs' ? 'active' : ''} onClick={() => setView('logs')}>🛡️ Logs</button>
+                    <button className={view === 'logs' ? 'active' : ''} onClick={() => setView('logs')}>📜 Logs</button>
                 )}
-            </div>
-            <div className="nav-user">
+
                 {user ? (
-                    <>
-                        <span>
-                            {user.username}
-                            {isAdmin() && <span className="admin-tag">ADMIN</span>}
-                        </span>
-                        <button className="btn-logout" onClick={logout}>Ieși</button>
-                    </>
+                    <button onClick={logout} style={{ color: '#d32f2f' }}>Logout</button>
                 ) : (
-                    <button className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.9rem' }} onClick={() => setView('login')}>
-                        Login
-                    </button>
+                    <button onClick={() => setView('products')}>Login</button>
                 )}
             </div>
         </nav>
