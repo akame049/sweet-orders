@@ -21,7 +21,8 @@ const allowedOrigins = [
     "http://localhost:5173",
     "https://localhost:5173",
     "https://sweet-orders-jade.vercel.app",
-    "https://sweet-orders-frontend.vercel.app"
+    "https://sweet-orders-frontend.vercel.app",
+    'https://172.30.160.1:5173'
 ];
 
 // 2. CONFIGURARE CORS

@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
-const API_URL = 'https://localhost:5000/api'; 
+const API_URL = 'https://172.30.160.1:5000/api'; 
 
 const LogsPage = () => {
     const { isAdmin } = useAuth();

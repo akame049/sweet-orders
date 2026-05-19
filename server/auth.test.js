@@ -4,8 +4,6 @@ const assert = require('node:assert');
 // URL-ul local HTTPS pe care rulează serverul tău
 const BACKEND_URL = 'https://localhost:5000';
 
-// Deoarece folosim un certificat local auto-semnat (mkcert),
-// îi spunem procesului Node să ignore avertismentele SSL în timpul testului.
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 describe('🔒 Teste Automate Native - Autentificare Backend', () => {

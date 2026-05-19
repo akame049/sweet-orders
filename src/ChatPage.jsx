@@ -2,8 +2,8 @@
 import { useAuth } from './AuthContext';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'https://localhost:5000';
-const API_URL = 'https://localhost:5000/api'; 
+const SOCKET_URL = 'https://172.30.160.1:5000';
+const API_URL = 'https://172.30.160.1:5000/api'; 
 
 const ChatPage = () => {
     const { user } = useAuth();

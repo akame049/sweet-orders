@@ -1,8 +1,8 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const API_URL = 'https://localhost:5000/api';
-const SOCKET_URL = 'https://localhost:5000';
+const API_URL = 'https://172.30.160.1:5000/api';
+const SOCKET_URL = 'https://172.30.160.1:5000';
 
 export const useProducts = () => {
     const [products, setProducts] = useState([]);
