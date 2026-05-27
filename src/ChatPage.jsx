@@ -2,8 +2,8 @@
 import { useAuth } from './AuthContext';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'https://172.30.160.1:5000';
-const API_URL = 'https://172.30.160.1:5000/api'; 
+const SOCKET_URL = window.location.origin;
+const API_URL = '/api'; 
 
 const ChatPage = () => {
     const { user } = useAuth();
@@ -14,24 +14,32 @@ const ChatPage = () => {
     const bottomRef = useRef(null);
 
     useEffect(() => {
+        // 1. Siguranță: Dacă utilizatorul nu este încă încărcat din context, nu încercăm conectarea
+        if (!user || !user.username) return;
+
         // Încarcă mesajele vechi
         fetch(`${API_URL}/chat/messages`, { credentials: 'include' })
             .then(res => res.json())
-            .then(data => setMessages(Array.isArray(data) ? data : []));
+            .then(data => setMessages(Array.isArray(data) ? data : []))
+            .catch(err => console.error("Eroare la mesaje vechi:", err));
 
         // Conectare Socket.io
         const socket = io(SOCKET_URL, {
             withCredentials: true,
-            transports: ['websocket', 'polling'] 
+            transports: ['websocket', 'polling'],
+            upgrade: true // Permite upgrade automat de la polling la websocket
         });
         socketRef.current = socket;
 
         socket.on('connect', () => {
             setConnected(true);
+            console.log("💬 Chat dedicat conectat cu succes!");
             socket.emit('chat:join', { username: user.username, userId: user.id, roles: user.roles });
         });
 
-        socket.on('disconnect', () => setConnected(false));
+        socket.on('disconnect', () => {
+            setConnected(false);
+        });
 
         socket.on('chat:message', (message) => {
             setMessages(prev => [...prev, message]);
@@ -53,9 +61,11 @@ const ChatPage = () => {
             }]);
         });
 
-        return () => socket.disconnect();
-    }, [user]);
-
+        return () => {
+            console.log("🔌 Deconectare socket chat");
+            socket.disconnect();
+        };
+    }, [user?.username]); // ← Verificăm doar string-ul username, nu tot obiectul (evită loop-urile de referință)
     // Auto-scroll la ultimul mesaj
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
