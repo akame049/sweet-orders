@@ -58,7 +58,7 @@ app.use(express.static(path.join(__dirname, '../dist')));
 
 // 4. RUTELE DE API
 app.use('/api/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/chat', chatRoutes.router || chatRoutes);
 
 // Middleware simplu pentru verificare Admin
 const requireAdmin = (req, res, next) => {
