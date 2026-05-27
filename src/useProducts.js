@@ -31,10 +31,19 @@ export const useProducts = () => {
                 : `${API_URL}/products?page=${page}`;
             const res = await fetch(url);
             const data = await res.json();
-            setProducts(Array.isArray(data) ? data : []);
+
+            // FIX CRITIC: Verificăm dacă structura nouă de producție conține proprietatea .products
+            if (data && data.products && Array.isArray(data.products)) {
+                setProducts(data.products);
+                if (data.totalPages) setTotalPages(data.totalPages);
+            } else if (Array.isArray(data)) {
+                // Suport de siguranță în caz că serverul returnează doar array-ul simplu vechi
+                setProducts(data);
+            } else {
+                setProducts([]);
+            }
+
             setCurrentPage(page);
-            // totalPages vine de la server dacă îl trimiți, altfel rămâne 1
-            if (data.totalPages) setTotalPages(data.totalPages);
         } catch (err) {
             console.error(err);
         } finally {
@@ -45,8 +54,7 @@ export const useProducts = () => {
     useEffect(() => {
         const socket = io(SOCKET_URL, {
             transports: ['websocket', 'polling'],
-            withCredentials: true,
-            rejectUnauthorized: false // Îi spune browserului să accepte certificatul local mkcert
+            withCredentials: true
         });
         socketRef.current = socket;
 
@@ -67,7 +75,7 @@ export const useProducts = () => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchProducts(); 
+            fetchProducts();
         }, 5000);
         return () => clearInterval(interval);
     }, [fetchProducts]);
@@ -111,8 +119,16 @@ export const useProducts = () => {
         }
     };
 
-    const startFaker = async () => await fetch(`${API_URL}/faker/start`, { method: 'POST' });
-    const stopFaker = async () => await fetch(`${API_URL}/faker/stop`, { method: 'POST' });
+    const startFaker = async (req, res) => {
+        try {
+            await fetch(`${API_URL}/faker/start`, { method: 'POST' });
+        } catch (e) { console.error(e) }
+    };
+    const stopFaker = async (req, res) => {
+        try {
+            await fetch(`${API_URL}/faker/stop`, { method: 'POST' });
+        } catch (e) { console.error(e) }
+    };
 
     return {
         products, wsConnected, isOnline, isSyncing,
