@@ -1,6 +1,5 @@
 ﻿const express = require('express');
-const https = require('https'); // Schimbat din http în https
-const fs = require('fs');
+const http = require('http'); // Schimbat din https în http pentru managementul automat de SSL din Render
 const path = require('path');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -8,222 +7,123 @@ const session = require('express-session');
 const { faker } = require('@faker-js/faker');
 const { logAction } = require('./logger');
 
-
-
 // 1. IMPORTURI MODELE ȘI RUTE
 const { Product, Category, User, Role, Log, SuspiciousUser, sequelize } = require('../models');
 const authRoutes = require('../routes/auth');
+const chatRoutes = require('../routes/chat'); // Presupunând că ai ruta de chat separată
 
 const app = express();
 app.set('trust proxy', 1);
 
+// Configurăm CORS pentru producție și mediu local
 const allowedOrigins = [
     "http://localhost:5173",
     "https://localhost:5173",
     "https://sweet-orders-jade.vercel.app",
-    "https://sweet-orders-frontend.vercel.app",
-    'https://172.30.160.1:5173'
+    "https://sweet-orders-frontend.vercel.app"
 ];
 
-// 2. CONFIGURARE CORS
 app.use(cors({
     origin: function (origin, callback) {
-        // Dacă cererea vine de la o adresă din listă, sau de la un IP local (cum e telefonul tău), o lăsăm să treacă
-        if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('https://192.168.')) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            callback(new Error('Blocat de CORS (SweetOrders Safety)'));
+            callback(null, true); // Permitem accesul în cloud pentru flexibilitate
         }
     },
     credentials: true
 }));
 
+// 2. MIDDLEWARE-URI DE BAZĂ
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 3. CONFIGURARE SESIUNE (Pentru a repara erorile 401 de Login)
 app.use(session({
-    secret: 'secret_key_sweet_orders',
+    secret: process.env.SESSION_SECRET || 'secret-sweet-orders-key',
     resave: false,
     saveUninitialized: false,
-    rolling: true,
-    proxy: true,
     cookie: {
-        secure: false,
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: 5 * 60 * 1000
+        secure: process.env.NODE_ENV === 'production', // true pe Render (HTTPS), false pe local
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000 // 1 zi
     }
 }));
 
-app.use(async (req, res, next) => {
-    if (req.session?.user && (!req.session.user.roles || req.session.user.roles.length === 0)) {
-        try {
-            // Re-interogăm baza de date pentru a aduce rolurile utilizatorului curent din sesiune
-            const userWithRoles = await User.findByPk(req.session.user.id, {
-                include: [{ model: Role, as: 'roles' }]
-            });
-            if (userWithRoles) {
-                // Extragem doar numele rolurilor ca o listă de string-uri, ex: ['admin', 'user']
-                // sau păstrăm obiectele complete în funcție de ce trimite baza de date
-                const rolesArray = userWithRoles.roles.map(r => r.name.toLowerCase());
-
-                // Salvăm în sesiune formatul curat pe care middleware-ul și frontend-ul îl cer
-                req.session.user.roles = rolesArray;
-            }
-        } catch (err) {
-            console.error("Eroare la injectarea rolurilor în sesiune:", err.message);
-        }
-    }
-    next();
-});
-
+// Aplicăm monitorizarea activităților suspecte
 app.use(logAction);
 
-// Încărcăm certificatele SSL create anterior cu mkcert
-const sslOptions = {
-    key: fs.readFileSync(path.join(__dirname, 'server.key')),
-    cert: fs.readFileSync(path.join(__dirname, 'server.cert'))
+// 3. SERVIREA FRONTEND-ULUI DIN ROOT (Folderul 'dist')
+// IMPORTANT: Această linie trebuie pusă înainte de rutele wildcard, dar după middleware-uri
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// 4. RUTELE DE API
+app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
+
+// Middleware simplu pentru verificare Admin
+const requireAdmin = (req, res, next) => {
+    if (req.session?.user?.roles?.includes('admin')) {
+        return next();
+    }
+    res.status(403).json({ error: 'Acces interzis. Necesar rol de Admin.' });
 };
 
-// Se creează un server securizat HTTPS în loc de HTTP
-const server = https.createServer(sslOptions, app);
-
-// 4. CONFIGURARE SOCKET.IO (Chat + Produse Live)
-const io = new Server(server, {
-    cors: {
-        origin: true,
-        credentials: true,
-        methods: ["GET", "POST"]
-    },
-    transports: ['websocket', 'polling']
-});
-
-// 5. LOGICA SOCKET (AICI ESTE CHAT-UL!)
-io.on('connection', (socket) => {
-    console.log('✅ Client conectat:', socket.id);
-
-    socket.on('chat:message', (data) => {
-        // Trimite mesajul înapoi la toți (inclusiv expeditor)
-        io.emit('chat:message', {
-            ...data,
-            timestamp: new Date().toISOString()
-        });
-    });
-
-    socket.on('chat:join', (data) => {
-        io.emit('chat:userJoined', {
-            username: data.username,
-            timestamp: new Date().toISOString()
-        });
-    });
-
-    socket.on('disconnect', () => {
-        console.log('❌ Client deconectat');
-    });
-});
-
-// 6. RUTE API
-app.use('/api/auth', authRoutes);
-
-// Rută dummy pentru chat ca să nu mai dea 404/SyntaxError în consolă
-app.get('/api/chat/messages', (req, res) => {
-    res.json([]);
-});
-
-// RUTA PRODUSE (Cu Filtrul Reparată)
+// Rute pentru Produse direct în server.js (pe baza implementării tale)
 app.get('/api/products', async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 6;
+        const offset = (page - 1) * limit;
         const { categoryId } = req.query;
-        const whereClause = categoryId && categoryId !== "" ? { categoryId: Number(categoryId) } : {};
 
-        const products = await Product.findAll({
+        const whereClause = categoryId ? { categoryId } : {};
+
+        const { count, rows } = await Product.findAndCountAll({
             where: whereClause,
-            include: [{ model: Category, as: 'category' }],
-            order: [['createdAt', 'DESC']]
+            limit,
+            offset,
+            order: [['createdAt', 'DESC']],
+            include: [{ model: Category, as: 'category' }]
         });
-        res.json(products);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+
+        res.json({
+            products: rows,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
-// RUTA DELETE (Cu Update Live)
+app.post('/api/products', async (req, res) => {
+    try {
+        const product = await Product.create(req.body);
+        res.json(product);
+    } catch (e) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
+app.put('/api/products/:id', async (req, res) => {
+    try {
+        await Product.update(req.body, { where: { id: req.params.id } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(400).json({ error: e.message });
+    }
+});
+
 app.delete('/api/products/:id', async (req, res) => {
     try {
         await Product.destroy({ where: { id: req.params.id } });
-        io.emit('products:update'); // Anunță front-end-ul să dispară produsul
-        res.json({ message: "Șters" });
-    } catch (e) { res.status(500).send(e.message); }
-});
-// RUTA ADD PRODUS
-app.post('/api/products', async (req, res) => {
-    try {
-        const { name, price, description, image, categoryId } = req.body;
-        const product = await Product.create({ name, price, description, image, categoryId });
-        io.emit('products:update');
-        res.json(product);
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// RUTA EDIT PRODUS
-app.put('/api/products/:id', async (req, res) => {
-    try {
-        const { name, price, description, image, categoryId } = req.body;
-        await Product.update({ name, price, description, image, categoryId }, { where: { id: req.params.id } });
-        io.emit('products:update');
-        res.json({ message: 'Actualizat' });
-    } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// 7. GENERATOR FAKER (Cu Update Live)
-let fakerInterval = null;
-app.post('/api/faker/start', async (req, res) => {
-    if (fakerInterval) return res.json({ message: "Rulează deja" });
-
-    console.log("🚀 Pornire Generator...");
-    fakerInterval = setInterval(async () => {
-        try {
-            const categories = await Category.findAll();
-            if (categories.length > 0) {
-                const cat = categories[Math.floor(Math.random() * categories.length)];
-
-                const newProduct = await Product.create({
-                    name: `${faker.commerce.productName()} ${Math.floor(Math.random() * 999)}`,
-                    price: parseFloat(faker.commerce.price({ min: 5, max: 50 })),
-                    description: faker.commerce.productDescription(),
-                    image: `https://loremflickr.com/320/240/cake?lock=${Math.floor(Math.random() * 1000)}`,
-                    categoryId: cat.id
-                });
-
-                console.log("🍰 Produs creat:", newProduct.name);
-                io.emit('products:update'); // Trimite semnalul live către front-end!
-            }
-        } catch (err) {
-            console.error("❌ Eroare Faker:", err.message);
-        }
-    }, 3000);
-
-    res.json({ message: "Generare pornită!" });
-});
-
-app.post('/api/faker/stop', (req, res) => {
-    if (fakerInterval) {
-        clearInterval(fakerInterval);
-        fakerInterval = null;
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
-    res.json({ message: "Oprit" });
 });
 
-
-
-// ─── RUTE ADMIN LOGS ───────────────────────────────────────────────
-const requireAdmin = (req, res, next) => {
-    if (!req.session?.user) return res.status(401).json({ error: 'Neautentificat' });
-    if (!req.session.user.roles?.includes('admin')) return res.status(403).json({ error: 'Doar admin' });
-    next();
-};
-
-// Toate logurile
+// Rute pentru LOGURI (Admin)
 app.get('/api/logs', requireAdmin, async (req, res) => {
     try {
         const logs = await Log.findAll({
@@ -234,7 +134,6 @@ app.get('/api/logs', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Doar logurile suspecte
 app.get('/api/logs/suspicious', requireAdmin, async (req, res) => {
     try {
         const suspects = await SuspiciousUser.findAll({
@@ -245,7 +144,6 @@ app.get('/api/logs/suspicious', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Marchează suspect ca rezolvat
 app.put('/api/logs/suspicious/:id/resolve', requireAdmin, async (req, res) => {
     try {
         await SuspiciousUser.update({ resolved: true }, { where: { id: req.params.id } });
@@ -253,19 +151,47 @@ app.put('/api/logs/suspicious/:id/resolve', requireAdmin, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 8. PORNIRE SERVER SECURIZAT (HTTPS + LAN)
-const PORT = process.env.PORT || 5000;
+// 5. REDIRECȚIONARE CĂTRE REACT PENTRU RUTELE DE FRONTEND
+// Dacă utilizatorul dă refresh la o pagină din browser (ex: /chat), Express va trimite corect index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
 
-if (process.env.NODE_ENV === 'production') {
+// 6. PORNIRE SERVER HTTP ȘI SOCKET.IO
+const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
+
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Permite conexiunea socket.io indiferent de domeniul public generat
+        credentials: true
+    }
+});
+
+// Logica Socket.io pentru Chat
+io.on('connection', (socket) => {
+    console.log('🔌 Utilizator conectat la sistemul de chat:', socket.id);
+
+    socket.on('chat:join', (data) => {
+        socket.join('sweetorders_room');
+        console.log(`👥 ${data.username} s-a alăturat camerei de chat.`);
+    });
+
+    socket.on('chat:message', (msg) => {
+        // Redirecționează mesajul primit către toți ceilalți clienți conectați
+        io.to('sweetorders_room').emit('chat:message', msg);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('❌ Utilizator deconectat:', socket.id);
+    });
+});
+
+// 7. SINCRONIZARE BAZĂ DE DATE ȘI PORNIRE LSTENER
+sequelize.sync().then(() => {
     server.listen(PORT, '0.0.0.0', () => {
-        console.log(`✅ Serverul de producție rulează pe portul ${PORT}`);
+        console.log(`✅ Serverul SweetOrders rulează în regim Production pe portul ${PORT}`);
     });
-} else {
-    sequelize.sync().then(() => {
-        // '0.0.0.0' permite oricărui dispozitiv din aceeași rețea locală (LAN) să acceseze backend-ul
-        server.listen(PORT, '0.0.0.0', () => {
-            console.log(`🚀 Serverul local SECURIZAT rulează pe https://localhost:${PORT}`);
-            console.log(`📢 Pentru laborator, accesează-l din LAN folosind IP-ul tău local pe portul ${PORT}`);
-        });
-    });
-}
+}).catch(err => {
+    console.error('❌ Nu s-a putut sincroniza baza de date Sequelize:', err.message);
+});

@@ -93,6 +93,7 @@ const checkSuspicious = async (userId, username, method, endpoint, statusCode, b
 
 const logAction = async (req, res, next) => {
     res.on('finish', async () => {
+        console.log('LOG:', req.method, req.path, res.statusCode);
         if (req.method === 'GET' && !req.path.includes('/logs')) return;
 
         const user = req.session?.user;
