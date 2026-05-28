@@ -19,7 +19,7 @@ if (process.env.DB_NAME) {
         {
             host: process.env.DB_HOST,
             dialect: 'mysql',
-            port: process.env.PORT || 3306, // folosește portul bazei de date (implicit 3306)
+            port: 18347, // folosește portul bazei de date (implicit 3306)
             logging: false,
             dialectOptions: {
                 ssl: {
