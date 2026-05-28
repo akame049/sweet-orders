@@ -8,7 +8,7 @@ const { faker } = require('@faker-js/faker');
 const { logAction } = require('./logger');
 
 // 1. IMPORTURI MODELE ȘI RUTE
-const { Product, Category, User, Role, Log, SuspiciousUser, sequelize } = require('./models');
+const { Product, Category, User, Role, Log, SuspiciousUser, sequelize } = require('../models');
 const authRoutes = require('../routes/auth');
 const chatRoutes = require('../routes/chat'); // Presupunând că ai ruta de chat separată
 
