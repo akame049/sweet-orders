@@ -1,8 +1,8 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const API_URL = '/api';
-const SOCKET_URL = window.location.origin;
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export const useProducts = () => {
     const [products, setProducts] = useState([]);
