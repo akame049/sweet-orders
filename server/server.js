@@ -18,22 +18,24 @@ app.set('trust proxy', 1);
 // Configurăm CORS pentru producție și mediu local
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://localhost:5173",
-    "https://sweet-orders-jade.vercel.app",
-    "https://sweet-orders-e0u23n11f-akame049s-projects.vercel.app" // 💡 Adăugat link-ul exact din eroare
+    'https://sweet-orders-jade.vercel.app', 
+    'https://sweet-orders-rgtd16vp0-akame049s-projects.vercel.app'
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
+        // 1. Permite cererile fără origine (cum ar fi aplicațiile mobile sau Postman)
+        if (!origin) return callback(null, true);
+
+        // 2. Permite originile din lista fixă sau orice URL generat de Vercel pentru proiectul tău
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('.vercel.app')) {
+            return callback(null, true);
         } else {
-            callback(new Error('Blocat de CORS (Origine nepermisă)'));
+            return callback(new Error('Blocat de CORS (Origine nepermisă)'));
         }
     },
     credentials: true
 }));
-
 // 2. MIDDLEWARE-URI DE BAZĂ
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
