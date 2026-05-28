@@ -20,7 +20,7 @@ const allowedOrigins = [
     "http://localhost:5173",
     "https://localhost:5173",
     "https://sweet-orders-jade.vercel.app",
-    "https://sweet-orders-frontend.vercel.app"
+    "https://sweet-orders-e0u23n11f-akame049s-projects.vercel.app" // 💡 Adăugat link-ul exact din eroare
 ];
 
 app.use(cors({
@@ -28,7 +28,7 @@ app.use(cors({
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
-            callback(null, true); // Permitem accesul în cloud pentru flexibilitate
+            callback(new Error('Blocat de CORS (Origine nepermisă)'));
         }
     },
     credentials: true
