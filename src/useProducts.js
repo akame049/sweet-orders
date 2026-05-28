@@ -1,9 +1,8 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`;
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
+const API_URL = 'https://sweet-orders-server-production.up.railway.app/api';
+const SOCKET_URL = 'https://sweet-orders-server-production.up.railway.app';
 export const useProducts = () => {
     const [products, setProducts] = useState([]);
     const [wsConnected, setWsConnected] = useState(false);

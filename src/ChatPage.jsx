@@ -2,8 +2,8 @@
 import { useAuth } from './AuthContext';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`; 
+const API_URL = 'https://sweet-orders-server-production.up.railway.app/api';
+const SOCKET_URL = 'https://sweet-orders-server-production.up.railway.app';
 
 const ChatPage = () => {
     const { user } = useAuth();
