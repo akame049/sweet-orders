@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 const fs = require('fs');
 const path = require('path');
@@ -11,24 +11,30 @@ const db = {};
 
 let sequelize;
 
+let sequelize;
+
 if (process.env.DB_NAME) {
+    // Conexiunea pentru producție (Aiven)
     sequelize = new Sequelize(
         process.env.DB_NAME,
         process.env.DB_USER,
         process.env.DB_PASS,
         {
             host: process.env.DB_HOST,
-            dialect: config.dialect || 'mysql',
-            port: process.env.DB_PORT || 3306,
-            logging: false
+            dialect: 'mysql',
+            port: process.env.PORT || 3306, // folosește portul bazei de date (implicit 3306)
+            logging: false,
+            dialectOptions: {
+                ssl: {
+                    rejectUnauthorized: false // Permite conexiunea SSL securizată fără certificat fizic local
+                }
+            }
         }
     );
-} else if (config.use_env_variable) {
-    sequelize = new Sequelize(process.env[config.use_env_variable], config);
 } else {
+    // Local pentru development (folosind config.json)
     sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
-
 fs
   .readdirSync(__dirname)
   .filter(file => {
