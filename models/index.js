@@ -10,9 +10,6 @@ const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
 
 let sequelize;
-
-let sequelize;
-
 if (process.env.DB_NAME) {
     // Conexiunea pentru producție (Aiven)
     sequelize = new Sequelize(
