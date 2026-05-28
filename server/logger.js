@@ -1,4 +1,4 @@
-﻿const { Log, SuspiciousUser } = require('../models');
+﻿const { Log, SuspiciousUser } = require('./models');
 
 // Limite pentru detecție
 const MAX_ACTIONS_PER_MINUTE = 15;
